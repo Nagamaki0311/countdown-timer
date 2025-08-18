@@ -62,17 +62,16 @@
 <div class="message" id="message">カウントダウンメッセージがここに表示されます。</div>
 
 <script>
-  const API_KEY = "AIzaSyCoOrWTtz2ZrjNOQwv_89XjtstKU3e2r-U"; 
-  const CALENDAR_ID = "japanese__ja@holiday.calendar.google.com";
+  const API_KEY = "AIzaSyCoOrWTtz2ZrjNOQwv_89XjtstKU3e2r-U"; // 取得済みキー
+  const CALENDAR_ID = "ja.japanese#holiday@group.v.calendar.google.com";
 
   let holidayDate = null; 
-  let holidaysCache = []; // APIから取得した祝日をキャッシュ
 
   const dayMessages = [
     "地球での1日は、火星では約24時間39分、木星では約9時間56分です。",
     "地球での2日を過ごしても、金星ではまだ1日の半分にも満たない時間です。",
     "地球での3日を過ごすと、木星では約7.5日分、土星では約7.6日分に相当します。",
-    // …4日〜100日のメッセージをここに追加…
+    // …ここに4日〜100日のメッセージを追加…
   ];
 
   const daysEl = document.getElementById('days');
@@ -84,20 +83,21 @@
   let prev = { days: null, hours: null, minutes: null, seconds: null };
 
   async function fetchHolidays() {
-    const now = new Date();
-    const timeMin = now.toISOString();
-    const timeMax = new Date(now.getFullYear() + 1, 11, 31).toISOString();
+    try {
+      const now = new Date();
+      const timeMin = now.toISOString();
+      const timeMax = new Date(now.getFullYear() + 1, 11, 31).toISOString();
 
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
-    const res = await fetch(url);
-    const data = await res.json();
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+      const res = await fetch(url);
+      const data = await res.json();
 
-    if (!data.items) {
-      console.error("祝日データが取得できませんでした:", data);
+      if (!data.items) return [];
+      return data.items.map(ev => new Date(ev.start.date));
+    } catch (err) {
+      console.error("祝日取得エラー:", err);
       return [];
     }
-
-    return data.items.map(ev => new Date(ev.start.date));
   }
 
   function findNextLongHoliday(holidays) {
@@ -115,28 +115,13 @@
         if (isWeekend || isHoliday) {
           streak.push(new Date(d));
           d.setDate(d.getDate() + 1);
-        } else {
-          break;
-        }
+        } else break;
       }
 
-      if (streak.length >= 3 && streak[streak.length - 1] > now) {
-        return streak[0];
-      }
-
+      if (streak.length >= 3) return streak[0];
       date.setDate(date.getDate() + 1);
     }
     return null;
-  }
-
-  async function refreshHolidayDate() {
-    if (holidaysCache.length === 0) {
-      holidaysCache = await fetchHolidays();
-    }
-    holidayDate = findNextLongHoliday(holidaysCache);
-    if (!holidayDate) {
-      messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
-    }
   }
 
   function updateTimer() {
@@ -148,9 +133,15 @@
     const now = new Date();
     let diff = Math.floor((holidayDate - now) / 1000);
 
-    // もし連休開始を過ぎたら、次の連休を再検索
     if (diff <= 0) {
-      refreshHolidayDate();
+      // 次の連休を再探索
+      (async () => {
+        const holidays = await fetchHolidays();
+        holidayDate = findNextLongHoliday(holidays);
+        if (!holidayDate) {
+          messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
+        }
+      })();
       return;
     }
 
@@ -183,7 +174,11 @@
   }
 
   (async function init() {
-    await refreshHolidayDate();
+    const holidays = await fetchHolidays();
+    holidayDate = findNextLongHoliday(holidays);
+    if (!holidayDate) {
+      messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
+    }
     setInterval(updateTimer, 1000);
     updateTimer();
   })();
