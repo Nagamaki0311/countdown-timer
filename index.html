@@ -270,13 +270,14 @@ function findNextLongHoliday(holidays){
       const isHoliday = holidays.some(h=>h.toDateString()===d.toDateString());
       if(isWeekend || isHoliday){ streak.push(new Date(d)); d.setDate(d.getDate()+1); }
       else { break;}
-    if(streak.length>=3) return streak[0];
+      if(streak.length>=3) return streak[0];
+    }
     date.setDate(date.getDate()+1);
   }
   return null;
 }
 
-// 粒子生成（紙吹雪＋光スパーク豪華版）
+// 粒子生成
 function createParticles() {
   const count = 40;
   for(let i=0;i<count;i++){
@@ -306,9 +307,9 @@ function triggerScreenNoise(){
   }, {once:true});
 }
 
-// ランダム間隔でノイズ発生（平均30秒に1回）
+// ランダム間隔でノイズ発生
 function scheduleNoise(){
-  const interval = Math.random()*30000 + 1000; // 1～31秒のランダム
+  const interval = Math.random()*30000 + 1000; // 1～31秒
   setTimeout(()=>{
     triggerScreenNoise();
     scheduleNoise();
@@ -354,7 +355,7 @@ function updateTimer(holidayDate){
   updateTimer(holidayDate);
   setInterval(()=>updateTimer(holidayDate), 1000);
 
-  // ノイズスケジュール開始
+  // デジタルノイズ開始
   scheduleNoise();
 })();
 </script>
