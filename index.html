@@ -1,13 +1,11 @@
-
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>次の連休までカウントダウン</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
 body {
   background: #000;
@@ -20,6 +18,7 @@ body {
   font-family: 'Orbitron', 'Arial', sans-serif;
   padding: 0 20px;
   text-align: center;
+  overflow: hidden;
 }
 
 .timer {
@@ -50,16 +49,8 @@ body {
   animation: digitalNoise 0.4s ease-in-out;
 }
 
-.unit {
-  display: flex;
-  align-items: flex-end;
-}
-
-.unit small {
-  font-size: 1.2rem;
-  margin-left: 4px;
-  margin-bottom: 4px;
-}
+.unit { display: flex; align-items: flex-end; }
+.unit small { font-size: 1.2rem; margin-left: 4px; margin-bottom: 4px; }
 
 .message {
   margin-top: 24px;
@@ -69,18 +60,83 @@ body {
   text-shadow: 0 0 3px #0ff, 0 0 6px #0ff;
   line-height: 1.2;
 }
+
+/* 連休表示用 */
+.celebration {
+  display: none;
+  font-family: 'Orbitron', 'Arial', sans-serif;
+  font-size: 6rem;
+  font-weight: 900;
+  color: gold;
+  text-shadow: 0 0 10px #fff, 0 0 20px gold, 0 0 40px gold, 0 0 80px gold;
+  margin-top: 20px;
+  position: relative;
+  animation: glow 1.5s ease-in-out infinite alternate;
+  z-index: 2;
+}
+
+@keyframes glow {
+  0% { text-shadow: 0 0 10px #fff, 0 0 20px gold, 0 0 40px gold, 0 0 80px gold; }
+  100% { text-shadow: 0 0 20px #fff, 0 0 40px gold, 0 0 80px gold, 0 0 160px gold; }
+}
+
+/* 粒子（紙吹雪＋光スパーク） */
+.particle {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0.9;
+  transform: translate3d(0,0,0);
+  animation-name: floatFall;
+  animation-timing-function: linear;
+}
+
+@keyframes floatFall {
+  0% {
+    transform: translate3d(var(--x), 0, 0) rotate(0deg) scale(var(--scale));
+    opacity:1;
+  }
+  50% {
+    transform: translate3d(calc(var(--x) + var(--drift)), 50vh, 180deg) scale(var(--scale));
+    opacity:0.8;
+  }
+  100% {
+    transform: translate3d(calc(var(--x) + var(--drift)*1.5), 100vh, 360deg) scale(var(--scale));
+    opacity:0;
+  }
+}
+
+/* デジタルノイズ演出 */
+#screenNoise {
+  pointer-events: none;
+  position: fixed;
+  top:0; left:0;
+  width:100vw; height:100vh;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="white"/><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(#noiseFilter)"/></svg>') repeat;
+  opacity:0;
+  z-index: 9999;
+  mix-blend-mode: screen;
+  transform: scale(1) skew(0deg);
+}
+
+@keyframes noiseFlash {
+  0% { opacity:0; transform: scale(1) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
+  20% { opacity:0.3; transform: scale(1.02) skew(2deg, -1deg); filter: hue-rotate(20deg) contrast(1.2); }
+  50% { opacity:0.4; transform: scale(0.98) skew(-2deg, 1deg); filter: hue-rotate(-20deg) contrast(1.1); }
+  70% { opacity:0.2; transform: scale(1.01) skew(1deg, -1deg); filter: hue-rotate(10deg) contrast(1.3); }
+  100% { opacity:0; transform: scale(1) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
+}
 </style>
 </head>
 <body>
 
 <div class="timer" id="timer">
   <div class="unit"><span class="digit" id="days">0</span><small>日</small></div>
-  <div class="unit"><span class="digit" id="hours">0</span><small>時間</small></div>
-  <div class="unit"><span class="digit" id="minutes">0</span><small>分</small></div>
-  <div class="unit"><span class="digit" id="seconds">0</span><small>秒</small></div>
 </div>
 
 <div class="message" id="message">カウントダウンメッセージがここに表示されます。</div>
+<div class="celebration" id="celebration">連休！</div>
+<div id="screenNoise"></div>
 
 <script>
 const API_KEY = "AIzaSyCoOrWTtz2ZrjNOQwv_89XjtstKU3e2r-U";
@@ -190,15 +246,8 @@ const dayMessages = {
 };
 
 const daysEl = document.getElementById("days");
-const hoursEl = document.getElementById("hours");
-const minutesEl = document.getElementById("minutes");
-const secondsEl = document.getElementById("seconds");
 const messageEl = document.getElementById("message");
-let prev = { days: null, hours: null, minutes: null, seconds: null };
-
-let initialTime = null;
-let startTimestamp = null;
-let holidayDate = null;
+let prev = { days: null };
 
 // 数字アニメーション
 function animateDigit(el, value){
@@ -218,10 +267,7 @@ async function fetchHolidays() {
     const data = await res.json();
     if(!data.items) return [];
     return data.items.filter(ev => ev.start && ev.start.date).map(ev => new Date(ev.start.date));
-  } catch(err) {
-    console.error("祝日取得エラー:", err);
-    return [];
-  }
+  } catch(err) { console.error("祝日取得エラー:", err); return []; }
 }
 
 // 3日以上連休判定
@@ -233,7 +279,8 @@ function findNextLongHoliday(holidays){
     while(true){
       const isWeekend = d.getDay()===0 || d.getDay()===6;
       const isHoliday = holidays.some(h=>h.toDateString()===d.toDateString());
-      if(isWeekend || isHoliday){ streak.push(new Date(d)); d.setDate(d.getDate()+1); } else { break; }
+      if(isWeekend || isHoliday){ streak.push(new Date(d)); d.setDate(d.getDate()+1); }
+      else { break; }
     }
     if(streak.length>=3) return streak[0];
     date.setDate(date.getDate()+1);
@@ -241,76 +288,81 @@ function findNextLongHoliday(holidays){
   return null;
 }
 
-// タイマー更新
-function updateTimer(){
-  if(!initialTime || !holidayDate || !startTimestamp){
-    messageEl.textContent="次の連休を検索中…";
-    return;
+// 粒子生成（紙吹雪＋光スパーク豪華版）
+function createParticles() {
+  const count = 40;
+  for(let i=0;i<count;i++){
+    const p = document.createElement('div');
+    p.classList.add('particle');
+    const size = Math.random()*10 + 5;
+    p.style.width = `${size}px`;
+    p.style.height = `${size}px`;
+    p.style.background = Math.random()<0.7 ? `hsl(${Math.random()*360}, 80%, 60%)` : 'gold';
+    p.style.setProperty('--x', `${Math.random()*window.innerWidth}px`);
+    p.style.setProperty('--drift', `${(Math.random()-0.5)*100}px`);
+    p.style.setProperty('--scale', `${Math.random()*0.8+0.5}`);
+    p.style.animationDuration = `${Math.random()*3+3}s`;
+    p.style.zIndex = Math.random() > 0.5 ? 0 : 1;
+    document.body.appendChild(p);
+    p.addEventListener('animationend', ()=>p.remove());
   }
-  const elapsedMs = Date.now() - startTimestamp;
-  const now = new Date(initialTime.getTime() + elapsedMs);
-  let diff = Math.floor((holidayDate - now)/1000);
-  if(diff<=0){
-    messageEl.textContent="連休が始まりました！楽しんでください。";
-    return;
-  }
-
-  const days = Math.floor(diff/86400);
-  const hours = Math.floor((diff%86400)/3600);
-  const minutes = Math.floor((diff%3600)/60);
-  const seconds = diff%60;
-
-  if(days!==prev.days) animateDigit(daysEl,days);
-  if(hours!==prev.hours) animateDigit(hoursEl,hours);
-  if(minutes!==prev.minutes) animateDigit(minutesEl,minutes);
-  if(seconds!==prev.seconds) animateDigit(secondsEl,seconds);
-  prev={days,hours,minutes,seconds};
-
-  if(days>=1 && dayMessages[days]) messageEl.textContent=dayMessages[days];
-  else if(days>0) messageEl.textContent="もうすぐ連休です。準備はできていますか？";
-  else messageEl.textContent="連休が始まりました！楽しんでください。";
 }
 
-// 現在時刻取得
-async function fetchAccurateTime(){
-  try{
-    const res = await fetch("https://worldtimeapi.org/api/ip");
-    const data = await res.json();
-    initialTime = new Date(data.utc_datetime);
-    startTimestamp = Date.now();
-  }catch(err){
-    console.error("WorldTimeAPI取得エラー:", err);
-    initialTime = new Date();
-    startTimestamp = Date.now();
+// デジタルノイズ発生
+function triggerScreenNoise(){
+  const noiseEl = document.getElementById('screenNoise');
+  noiseEl.style.animation = 'noiseFlash 0.15s ease-in-out';
+  noiseEl.addEventListener('animationend', ()=>{
+    noiseEl.style.animation = '';
+  }, {once:true});
+}
+
+// ランダム間隔でノイズ発生
+setInterval(()=>{
+  if(Math.random()<0.35){ // 35%確率
+    triggerScreenNoise();
   }
+}, 400);
+
+// タイマー更新
+function updateTimer(holidayDate){
+  const now = new Date();
+  let diffDays = Math.ceil((holidayDate - now) / (1000*60*60*24));
+
+  const celebrationEl = document.getElementById('celebration');
+  const timerEl = document.getElementById('timer');
+
+  if(diffDays <= 0){
+    timerEl.style.display = 'none';
+    celebrationEl.style.display = 'block';
+    messageEl.textContent = "連休が始まりました！楽しんでください。";
+
+    createParticles();
+    setInterval(createParticles, 400);
+    return;
+  }
+
+  timerEl.style.display = 'flex';
+  celebrationEl.style.display = 'none';
+
+  if(diffDays !== prev.days) animateDigit(daysEl, diffDays);
+  prev.days = diffDays;
+
+  if(diffDays >= 1 && dayMessages[diffDays]) messageEl.textContent = dayMessages[diffDays];
+  else messageEl.textContent = "もうすぐ連休です。準備はできていますか？";
 }
 
 // 初期化
 (async function init(){
-  // localStorage から読み込み
-  const savedTime = localStorage.getItem("initialTime");
-  const savedHoliday = localStorage.getItem("holidayDate");
-  const savedTimestamp = localStorage.getItem("startTimestamp");
-
-  if(savedTime && savedHoliday && savedTimestamp){
-    initialTime = new Date(savedTime);
-    holidayDate = savedHoliday ? new Date(savedHoliday) : null;
-    startTimestamp = parseInt(savedTimestamp);
-  } else {
-    await fetchAccurateTime();
-    const holidays = await fetchHolidays();
-    holidayDate = findNextLongHoliday(holidays);
-    // localStorageに保存
-    localStorage.setItem("initialTime", initialTime.toISOString());
-    localStorage.setItem("holidayDate", holidayDate ? holidayDate.toISOString() : "");
-    localStorage.setItem("startTimestamp", startTimestamp.toString());
+  const holidays = await fetchHolidays();
+  const holidayDate = findNextLongHoliday(holidays);
+  if(!holidayDate){
+    messageEl.textContent="今後1年以内に3日以上の連休は見つかりませんでした。";
+    return;
   }
-
-  if(!holidayDate) messageEl.textContent="今後1年以内に3日以上の連休は見つかりませんでした。";
-  updateTimer();
-  setInterval(updateTimer,1000);
+  updateTimer(holidayDate);
+  setInterval(()=>updateTimer(holidayDate), 1000);
 })();
 </script>
-
 </body>
 </html>
