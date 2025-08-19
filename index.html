@@ -58,6 +58,7 @@ body {
 </style>
 </head>
 <body>
+
 <div class="timer" id="timer">
   <div class="unit"><span class="digit" id="days">0</span><small>日</small></div>
   <div class="unit"><span class="digit" id="hours">0</span><small>時間</small></div>
@@ -178,20 +179,20 @@ let firstHoliday = null;
 let nowTime = null;
 let prev = { days: null, hours: null, minutes: null, seconds: null };
 
-// 日本時間取得
-async function fetchJapanTime() {
+// --- 即時同期の日本時間取得 ---
+async function getJapanTime() {
   try {
     const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Tokyo");
     const data = await res.json();
-    nowTime = new Date(data.datetime);
+    return new Date(data.datetime);
   } catch(e) {
-    console.error("日本時間取得エラー:", e);
-    nowTime = new Date(new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }));
-    setTimeout(fetchJapanTime, 10000); // 10秒後に再取得
+    console.warn("WorldTimeAPI取得失敗、ローカル時間+JSTで代替");
+    const local = new Date();
+    return new Date(local.getTime() + (9*60 - local.getTimezoneOffset())*60*1000);
   }
 }
 
-// 祝日取得
+// --- 祝日取得 ---
 async function fetchHolidays() {
   try {
     const timeMin = nowTime.toISOString();
@@ -205,12 +206,11 @@ async function fetchHolidays() {
       .map(ev => new Date(ev.start.date + "T00:00:00+09:00"));
   } catch (err) {
     console.error("祝日取得エラー:", err);
-    setTimeout(fetchHolidays, 60000); // 1分後に再試行
     return [];
   }
 }
 
-// 次の3日以上連休を探す
+// --- 次の3日以上連休を探す ---
 function findNextLongHoliday(holidays) {
   let date = new Date(nowTime);
   let earliestHoliday = null;
@@ -224,9 +224,7 @@ function findNextLongHoliday(holidays) {
       if (isWeekend || isHoliday) {
         streak.push(new Date(d));
         d.setDate(d.getDate() + 1);
-      } else {
-        break;
-      }
+      } else break;
     }
     if (streak.length >= 3) return { nextHoliday: streak[0], firstHoliday: earliestHoliday };
     date.setDate(date.getDate() + 1);
@@ -234,7 +232,7 @@ function findNextLongHoliday(holidays) {
   return { nextHoliday: null, firstHoliday: earliestHoliday };
 }
 
-// 数字アニメーション
+// --- デジタル数字アニメーション ---
 function morphDigit(el, value) {
   el.classList.remove("morph");
   void el.offsetWidth;
@@ -242,20 +240,27 @@ function morphDigit(el, value) {
   el.classList.add("morph");
 }
 
-// タイマー更新
+// --- タイマー更新 ---
 function updateTimer() {
   if (!nowTime) return;
   nowTime = new Date(nowTime.getTime() + 1000);
+
   let targetDate = holidayDate || firstHoliday;
   if (!targetDate) {
     messageEl.textContent = "次の連休はまだ見つかりません。";
     return;
   }
+
   let diff = (targetDate - nowTime) / 1000;
   if (diff <= 0) {
     messageEl.textContent = holidayDate ? "連休が始まりました！楽しんでください。" : "休日です！";
+    morphDigit(daysEl, 0);
+    morphDigit(hoursEl, 0);
+    morphDigit(minutesEl, 0);
+    morphDigit(secondsEl, 0);
     return;
   }
+
   const days = Math.floor(diff / 86400);
   const hours = Math.floor((diff % 86400) / 3600);
   const minutes = Math.floor((diff % 3600) / 60);
@@ -277,23 +282,24 @@ function updateTimer() {
   }
 }
 
-// DOM取得
+// --- DOM取得 ---
 const daysEl = document.getElementById("days");
 const hoursEl = document.getElementById("hours");
 const minutesEl = document.getElementById("minutes");
 const secondsEl = document.getElementById("seconds");
 const messageEl = document.getElementById("message");
 
-// 初期化
+// --- 初期化 ---
 (async function init() {
-  await fetchJapanTime();
+  nowTime = await getJapanTime();             // 即時同期
   const holidays = await fetchHolidays();
   const { nextHoliday, firstHoliday: first } = findNextLongHoliday(holidays);
   holidayDate = nextHoliday;
   firstHoliday = first;
+
   updateTimer();
-  setInterval(updateTimer, 1000);
-  setInterval(fetchJapanTime, 5 * 60 * 1000);
+  setInterval(updateTimer, 1000);            // 秒単位で更新
+  setInterval(async () => { nowTime = await getJapanTime(); }, 5*60*1000);  // 5分ごと再同期
 })();
 </script>
 </body>
