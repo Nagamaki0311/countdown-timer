@@ -5,60 +5,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>次の連休までカウントダウン</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
-body {
-  background: #000;
-  color: #0ff;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-family: 'Orbitron', 'Arial', sans-serif;
-  padding: 0 20px;
-  text-align: center;
-}
+  body {
+    background: #000;
+    color: #0ff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Orbitron', 'Arial', sans-serif;
+    padding: 0 20px;
+    text-align: center;
+  }
 
-.timer {
-  display: flex;
-  gap: 15px;
-  font-size: 4rem;
-  font-weight: 700;
-  text-shadow: 0 0 8px #0ff, 0 0 16px #0ff, 0 0 32px #0ff;
-}
+  .timer {
+    display: flex;
+    gap: 15px;
+    font-size: 4rem;
+    font-weight: 700;
+    text-shadow: 0 0 8px #0ff, 0 0 16px #0ff, 0 0 32px #0ff;
+  }
 
-.digit { display: inline-block; min-width: 3rem; }
+  .digit {
+    display: inline-block;
+    perspective: 1000px;
+    min-width: 3rem;
+  }
 
-.morph {
-  display: inline-block;
-  animation: noise 0.2s steps(5) forwards;
-}
+  .flip {
+    display: inline-block;
+    transform-origin: bottom;
+    animation: flip 0.6s ease-in-out forwards;
+  }
 
-@keyframes noise {
-  0% { opacity: 1; transform: translate(0,0) scale(1); }
-  20% { opacity: 0.3; transform: translate(-2px,1px) scale(1.05); }
-  40% { opacity: 1; transform: translate(1px,-1px) scale(0.95); }
-  60% { opacity: 0.5; transform: translate(-1px,2px) scale(1.02); }
-  80% { opacity: 1; transform: translate(0,0) scale(1); }
-  100% { opacity: 1; transform: translate(0,0) scale(1); }
-}
+  @keyframes flip {
+    0% { transform: rotateX(0deg); }
+    50% { transform: rotateX(-95deg); opacity: 0.3; }
+    100% { transform: rotateX(0deg); opacity: 1; }
+  }
 
-.unit { display: flex; align-items: flex-end; }
-.unit small { font-size: 1.2rem; margin-left: 4px; margin-bottom: 4px; }
+  .unit {
+    display: flex;
+    align-items: flex-end;
+  }
 
-.message {
-  margin-top: 12px;
-  font-size: 0.25rem;
-  max-width: 600px;
-  color: #0ff;
-  text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
-  line-height: 1.4;
-}
+  .unit small {
+    font-size: 1.2rem;
+    margin-left: 4px;
+    margin-bottom: 4px;
+  }
+
+  .message {
+    margin-top: 24px;
+    font-size: 1.2rem;
+    max-width: 600px;
+    color: #0ff;
+    text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+    line-height: 1.4;
+  }
 </style>
 </head>
 <body>
-
 <div class="timer" id="timer">
   <div class="unit"><span class="digit" id="days">0</span><small>日</small></div>
   <div class="unit"><span class="digit" id="hours">0</span><small>時間</small></div>
@@ -70,6 +79,9 @@ body {
 <script>
 const API_KEY = "AIzaSyCoOrWTtz2ZrjNOQwv_89XjtstKU3e2r-U";
 const CALENDAR_ID = "ja.japanese#holiday@group.v.calendar.google.com";
+
+let holidayDate = null;
+let nowTime = null; // 現在時刻をAPIから取得
 
 const dayMessages = {
   1: "地球での1日は、火星では約24時間39分、木星では約9時間56分です。地球よりも火星、火星よりも木星の方が連休が早く訪れますよ。",
@@ -174,132 +186,114 @@ const dayMessages = {
   100: "地球での100日は、木星では約246日分。映画は倍速で見るのがスタンダードかもしれません。"
 };
 
-let holidayDate = null;
-let firstHoliday = null;
-let nowTime = null;
+const daysEl = document.getElementById("days");
+const hoursEl = document.getElementById("hours");
+const minutesEl = document.getElementById("minutes");
+const secondsEl = document.getElementById("seconds");
+const messageEl = document.getElementById("message");
 let prev = { days: null, hours: null, minutes: null, seconds: null };
 
-// --- 即時同期の日本時間取得 ---
-async function getJapanTime() {
-  try {
-    const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Tokyo");
-    const data = await res.json();
-    return new Date(data.datetime);
-  } catch(e) {
-    console.warn("WorldTimeAPI取得失敗、ローカル時間+JSTで代替");
-    const local = new Date();
-    return new Date(local.getTime() + (9*60 - local.getTimezoneOffset())*60*1000);
-  }
-}
-
-// --- 祝日取得 ---
+// Googleカレンダー祝日取得
 async function fetchHolidays() {
   try {
-    const timeMin = nowTime.toISOString();
-    const endOfYear = new Date(nowTime.getFullYear() + 1, 11, 31).toISOString();
+    const timeMin = new Date().toISOString();
+    const endOfYear = new Date(new Date().getFullYear() + 1, 11, 31).toISOString();
     const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${endOfYear}&singleEvents=true&orderBy=startTime`;
     const res = await fetch(url);
     const data = await res.json();
     if (!data.items) return [];
     return data.items
       .filter(ev => ev.start && ev.start.date)
-      .map(ev => new Date(ev.start.date + "T00:00:00+09:00"));
+      .map(ev => new Date(ev.start.date));
   } catch (err) {
     console.error("祝日取得エラー:", err);
     return [];
   }
 }
 
-// --- 次の3日以上連休を探す ---
+// 3日以上連休判定
 function findNextLongHoliday(holidays) {
-  let date = new Date(nowTime);
-  let earliestHoliday = null;
+  const date = new Date(nowTime);
   for (let i = 0; i < 365; i++) {
     let streak = [];
     let d = new Date(date);
     while (true) {
       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       const isHoliday = holidays.some(h => h.toDateString() === d.toDateString());
-      if (!earliestHoliday && isHoliday) earliestHoliday = new Date(d);
       if (isWeekend || isHoliday) {
         streak.push(new Date(d));
         d.setDate(d.getDate() + 1);
-      } else break;
+      } else {
+        break;
+      }
     }
-    if (streak.length >= 3) return { nextHoliday: streak[0], firstHoliday: earliestHoliday };
+    if (streak.length >= 3) return streak[0];
     date.setDate(date.getDate() + 1);
   }
-  return { nextHoliday: null, firstHoliday: earliestHoliday };
+  return null;
 }
 
-// --- デジタル数字アニメーション ---
-function morphDigit(el, value) {
-  el.classList.remove("morph");
+// 数字フリップ
+function flipDigit(el, value) {
+  el.classList.remove("flip");
   void el.offsetWidth;
   el.textContent = value;
-  el.classList.add("morph");
+  el.classList.add("flip");
 }
 
-// --- タイマー更新 ---
+// タイマー更新
 function updateTimer() {
-  if (!nowTime) return;
-  nowTime = new Date(nowTime.getTime() + 1000);
-
-  let targetDate = holidayDate || firstHoliday;
-  if (!targetDate) {
-    messageEl.textContent = "次の連休はまだ見つかりません。";
+  if (!holidayDate || !nowTime) {
+    messageEl.textContent = "次の連休を検索中…";
     return;
   }
 
-  let diff = (targetDate - nowTime) / 1000;
+  nowTime = new Date(nowTime.getTime() + 1000); // 1秒ずつ進める
+  let diff = Math.floor((holidayDate - nowTime) / 1000);
   if (diff <= 0) {
-    messageEl.textContent = holidayDate ? "連休が始まりました！楽しんでください。" : "休日です！";
-    morphDigit(daysEl, 0);
-    morphDigit(hoursEl, 0);
-    morphDigit(minutesEl, 0);
-    morphDigit(secondsEl, 0);
+    messageEl.textContent = "連休が始まりました！楽しんでください。";
     return;
   }
 
   const days = Math.floor(diff / 86400);
   const hours = Math.floor((diff % 86400) / 3600);
   const minutes = Math.floor((diff % 3600) / 60);
-  const seconds = Math.floor(diff % 60);
+  const seconds = diff % 60;
 
-  if (days !== prev.days) morphDigit(daysEl, days);
-  if (hours !== prev.hours) morphDigit(hoursEl, hours);
-  if (minutes !== prev.minutes) morphDigit(minutesEl, minutes);
-  if (seconds !== prev.seconds) morphDigit(secondsEl, seconds);
-
+  if (days !== prev.days) flipDigit(daysEl, days);
+  if (hours !== prev.hours) flipDigit(hoursEl, hours);
+  if (minutes !== prev.minutes) flipDigit(minutesEl, minutes);
+  if (seconds !== prev.seconds) flipDigit(secondsEl, seconds);
   prev = { days, hours, minutes, seconds };
 
-  if (holidayDate && days >= 1 && dayMessages[days]) {
+  if (days >= 1 && dayMessages[days]) {
     messageEl.textContent = dayMessages[days];
   } else if (days > 0) {
-    messageEl.textContent = `あと${days}日！もうすぐ休日です。`;
+    messageEl.textContent = "もうすぐ連休です。準備はできていますか？";
   } else {
-    messageEl.textContent = holidayDate ? "連休が始まりました！楽しんでください。" : "休日です！";
+    messageEl.textContent = "連休が始まりました！楽しんでください。";
   }
 }
 
-// --- DOM取得 ---
-const daysEl = document.getElementById("days");
-const hoursEl = document.getElementById("hours");
-const minutesEl = document.getElementById("minutes");
-const secondsEl = document.getElementById("seconds");
-const messageEl = document.getElementById("message");
+// WorldTimeAPIで現在時刻取得
+async function fetchCurrentTime() {
+  try {
+    const res = await fetch("http://worldtimeapi.org/api/ip");
+    const data = await res.json();
+    nowTime = new Date(data.utc_datetime);
+  } catch (err) {
+    console.error("WorldTimeAPI取得エラー:", err);
+    nowTime = new Date(); // フォールバック
+  }
+}
 
-// --- 初期化 ---
 (async function init() {
-  nowTime = await getJapanTime();             // 即時同期
+  await fetchCurrentTime();
   const holidays = await fetchHolidays();
-  const { nextHoliday, firstHoliday: first } = findNextLongHoliday(holidays);
-  holidayDate = nextHoliday;
-  firstHoliday = first;
-
+  holidayDate = findNextLongHoliday(holidays);
+  if (!holidayDate) messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
+  setInterval(updateTimer, 1000);
   updateTimer();
-  setInterval(updateTimer, 1000);            // 秒単位で更新
-  setInterval(async () => { nowTime = await getJapanTime(); }, 5*60*1000);  // 5分ごと再同期
 })();
 </script>
 </body>
