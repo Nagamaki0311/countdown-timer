@@ -148,8 +148,8 @@ body {
   <div class="unit"><span class="digit" id="days">0</span><small>日</small></div>
 </div>
 
-<div class="message" id="message">カウントダウンメッセージがここに表示されます。</div>
-<div class="celebration" id="celebration">連休！</div>
+<div class="message" id="message">Loading...</div>
+<div class="celebration" id="celebration">連休</div>
 
 <!-- 背景ノイズ & スキャンライン -->
 <div id="grain"></div>
@@ -358,7 +358,7 @@ function updateTimer(holidayDate){
   const holidays = await fetchHolidays();
   const holidayDate = findNextLongHoliday(holidays);
   if(!holidayDate){
-    messageEl.textContent="今後1年以内に3日以上の連休は見つかりませんでした。";
+    messageEl.textContent="今後1年以内に連休は見つかりませんでした。";
     return;
   }
   updateTimer(holidayDate);
@@ -367,5 +367,3 @@ function updateTimer(holidayDate){
 </script>
 </body>
 </html>
-
-
