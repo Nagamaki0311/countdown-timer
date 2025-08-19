@@ -5,56 +5,56 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>次の連休までカウントダウン</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
-  body {
-    background: #000;
-    color: #0ff;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    font-family: 'Orbitron', 'Arial', sans-serif;
-    padding: 0 20px;
-    text-align: center;
-  }
+body {
+  background: #000;
+  color: #0ff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: 'Orbitron', 'Arial', sans-serif;
+  padding: 0 20px;
+  text-align: center;
+}
 
-  .timer {
-    display: flex;
-    gap: 15px;
-    font-size: 4rem;
-    font-weight: 700;
-    text-shadow: 0 0 8px #0ff, 0 0 16px #0ff, 0 0 32px #0ff;
-  }
+.timer {
+  display: flex;
+  gap: 15px;
+  font-size: 4rem;
+  font-weight: 700;
+  text-shadow: 0 0 8px #0ff, 0 0 16px #0ff, 0 0 32px #0ff;
+}
 
-  .digit { display: inline-block; min-width: 3rem; }
+.digit { display: inline-block; min-width: 3rem; }
 
-  .morph {
-    display: inline-block;
-    animation: noise 0.2s steps(5) forwards;
-  }
+.morph {
+  display: inline-block;
+  animation: noise 0.2s steps(5) forwards;
+}
 
-  @keyframes noise {
-    0% { opacity: 1; transform: translate(0,0) scale(1); }
-    20% { opacity: 0.3; transform: translate(-2px,1px) scale(1.05); }
-    40% { opacity: 1; transform: translate(1px,-1px) scale(0.95); }
-    60% { opacity: 0.5; transform: translate(-1px,2px) scale(1.02); }
-    80% { opacity: 1; transform: translate(0,0) scale(1); }
-    100% { opacity: 1; transform: translate(0,0) scale(1); }
-  }
+@keyframes noise {
+  0% { opacity: 1; transform: translate(0,0) scale(1); }
+  20% { opacity: 0.3; transform: translate(-2px,1px) scale(1.05); }
+  40% { opacity: 1; transform: translate(1px,-1px) scale(0.95); }
+  60% { opacity: 0.5; transform: translate(-1px,2px) scale(1.02); }
+  80% { opacity: 1; transform: translate(0,0) scale(1); }
+  100% { opacity: 1; transform: translate(0,0) scale(1); }
+}
 
-  .unit { display: flex; align-items: flex-end; }
-  .unit small { font-size: 1.2rem; margin-left: 4px; margin-bottom: 4px; }
+.unit { display: flex; align-items: flex-end; }
+.unit small { font-size: 1.2rem; margin-left: 4px; margin-bottom: 4px; }
 
-  .message {
-    margin-top: 12px;
-    font-size: 0.25rem;
-    max-width: 600px;
-    color: #0ff;
-    text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
-    line-height: 1.4;
-  }
+.message {
+  margin-top: 12px;
+  font-size: 0.25rem;
+  max-width: 600px;
+  color: #0ff;
+  text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+  line-height: 1.4;
+}
 </style>
 </head>
 <body>
@@ -71,20 +71,114 @@ const API_KEY = "AIzaSyCoOrWTtz2ZrjNOQwv_89XjtstKU3e2r-U";
 const CALENDAR_ID = "ja.japanese#holiday@group.v.calendar.google.com";
 
 const dayMessages = {
-  1: "明日から連休です！準備はできましたか？",
-  2: "あと2日！ワクワクが止まらないですね。",
-  3: "あと3日！そろそろ予定を確認してみましょう。",
-  4: "あと4日！仕事も最後の追い込みです。",
-  5: "あと5日！今週もあと少し！",
-  6: "あと6日！週末の計画を練るのにちょうどいい。",
-  7: "あと7日！1週間後に連休が始まります。"
+  1: "地球での1日は、火星では約24時間39分、木星では約9時間56分です。地球よりも火星、火星よりも木星の方が連休が早く訪れますよ。",
+  2: "地球で2日を過ごしても、金星ではまだ1日の半分にも満たない時間です。ランチを食べ始める頃かもしれません。",
+  3: "地球で3日を過ごすと、巨大ガス惑星の木星では約7.5日分、土星では約7.6日分に相当します。向こうではもう週明けみたいです。",
+  4: "地球での4日は、天王星では約6.8日分です。天王星の1日は約17時間なので、向こうで過ごせば、1日に2回は朝を迎えられます。",
+  5: "地球の5日は、海王星では約7.4日分です。海王星では、あっという間に1週間が過ぎてしまいそうですね。",
+  6: "地球の6日は、冥王星ではまだ1日の半分以下です。冥王星の人は、朝のコーヒーを淹れている頃かもしれません。",
+  7: "地球での7日を過ごしても、金星ではまだ朝ご飯の時間帯にすらなりません。",
+  8: "地球で8日を過ごしても、水星ではまだ夜明け前です。水星の1日は地球の約176日分なので、連休までが遠いですね。",
+  9: "地球で9日を過ごせば、木星では約21.8日分に相当し、3週間近くになります。",
+  10: "地球での10日は、土星では約24日分に相当します。土星では、目を離すと連休が通り過ぎてしまいそうです。",
+  11: "地球の11日は、海王星では約16.3日分に相当します。気づけば連休が来てしまいます。",
+  12: "地球での12日は、水星ではまだ夜明け前です。まだまだ熟睡中のようです。",
+  13: "地球の13日を過ごせば、冥王星ではようやく2日目に入ります。彼らの連休は遠いですね。",
+  14: "地球で14日は、水星ではまだ夜明け前です。水星の人たちは、のんびりした生活を送っていそうです。",
+  15: "地球の15日を過ごしても、金星ではまだ1日の16分の1です。歯磨きが終わる頃かもしれません。",
+  16: "地球での16日を過ごせば、木星では約38.5日分、土星では約38.4日分に相当し、1ヶ月以上になります。",
+  17: "地球で17日は、水星ではまだ夜明け前です。水星の夜は本当に長いですね。",
+  18: "地球での18日を過ごしても、金星ではまだ1日の13分の1です。向こうでは、朝の支度が始まるかもしれません。",
+  19: "地球の19日は、土星では約45.6日分に相当します。季節の変わり目のスピード感がすごそうです",
+  20: "地球で20日を過ごしても、水星ではまだ夜明け前です。水星の住人たちは、まだまだ夢の中かもしれません。",
+  21: "地球の21日は、木星では約50.6日分、果たして1日の経過が早いのは苦なのでしょうか、楽なのでしょうか。",
+  22: "地球での22日は、水星ではまだ夜明け前です。水星の夜更かしは命がけですね。",
+  23: "地球の23日を過ごしても、金星ではまだ1日の10分の1です。23日後に朝のコーヒーを淹れ始めるようです。",
+  24: "地球で24日は、天王星では約33.8日分に相当し、1ヶ月以上になります。天王星に引っ越したら、あっという間に給料日を迎えられそうですね。",
+  25: "地球での25日を過ごしても、水星ではまだ夜明け前です。水星の夜は本当に長いです。",
+  26: "地球で26日を過ごせば、冥王星では約4日目に入ります。休日の計画を立て始めるのかもしれません。",
+  27: "地球の27日は、木星では約65日分、土星では約64.8日分に相当します。",
+  28: "地球での28日を過ごしても、水星ではまだ夜明け前です。水星の人たちは、朝が来るのを待ちわびています。",
+  29: "地球の29日を過ごしても、金星ではまだ1日の8分の1です。朝の歯磨きを始める頃でしょうか。",
+  30: "地球で30日を過ごしても、水星ではまだ夜明け前です。水星の人たちの徹夜はもはや人生です。",
+  31: "地球での31日を過ごせば、火星では約30日分、土星では約74.4日分に相当します。あっという間に連休が過ぎてしまいます。",
+  32: "地球の32日を過ごしても、金星ではまだ1日の7分の1です。32日後に朝食の準備を始めるのかもしれません。",
+  33: "地球の33日は、海王星では約49.1日分に相当し、1ヶ月半以上になります。",
+  34: "地球での34日は、木星では約81.9日分、土星では約81.6日分に相当します。木星や土星では季節が2回以上変わってしまいそうです。",
+  35: "地球で35日を過ごせば、冥王星では約5.5日目。ようやく週末ですね。",
+  36: "地球での36日を過ごしても、水星ではまだ夜明け前です。水星の人は、終電を逃さなさそうですね。",
+  37: "地球での37日は、天王星では約52日分に相当し、1ヶ月半以上になります。天王星では、あっという間に歳をとりそうです。",
+  38: "地球での38日を過ごせば、木星では約91.4日分、土星では約91.2日分に相当し、3ヶ月以上になります。",
+  39: "地球での39日を過ごしても、水星ではまだ夜明け前です。水星の夜は、まるで終わりのない物語のようです。",
+  40: "地球での40日を過ごしても、金星ではまだ1日の6分の1です。金星の住人は、ようやくベッドから出るのかもしれません。",
+  41: "地球での41日は、木星では約98.8日分、土星では約98.4日分に相当します。もう少しで100日になりますね。",
+  42: "地球での42日を過ごしても、水星ではまだ夜明け前です。水星では、朝食の匂いが漂い始めた頃でしょうか。",
+  43: "地球での43日は、海王星では約64.1日分に相当し、2ヶ月以上になります。",
+  44: "地球での44日を過ごせば、冥王星では約6.8日目に入ります。長い一週間ですね。",
+  45: "地球での45日は、火星では約43.7日分、土星では約108日分に相当し、3ヶ月以上になります。",
+  46: "地球での46日を過ごしても、水星ではまだ夜明け前です。水星では、まだ深い眠りについている人が多そうです。",
+  47: "地球での47日は、木星では約113日分、土星では約112.8日分に相当します。",
+  48: "地球での48日を過ごしても、金星ではまだ1日の5分の1です。朝食を食べ終わる頃でしょうか。",
+  49: "地球での49日を過ごしても、水星ではまだ夜明け前です。",
+  50: "地球での50日は、天王星では約70.3日分に相当し、2ヶ月以上になります。天王星に住めば、次の連休まであっという間です。",
+  51: "地球での51日を過ごせば、冥王星では約8日目に入ります。週明けまであと51日です。",
+  52: "地球での52日を過ごしても、水星ではまだ夜明け前です。",
+  53: "地球での53日は、木星では約127.7日分、土星では約127.2日分に相当し、4ヶ月以上になります。",
+  54: "地球での54日を過ごしても、水星ではまだ夜明け前です。",
+  55: "地球での55日は、海王星では約81.9日分に相当し、2ヶ月半以上になります。",
+  56: "地球での56日を過ごせば、冥王星では約8.7日目に入ります。",
+  57: "地球での57日を過ごしても、金星ではまだ1日の4分の1です。",
+  58: "地球での58日を過ごしても、水星ではまだ夜明け前です。",
+  59: "地球での59日は、木星では約142.2日分、土星では約141.6日分に相当し、4ヶ月半以上になります。",
+  60: "地球での60日を過ごせば、火星では約58.2日分、土星では約144日分に相当し、4ヶ月半以上になります。",
+  61: "地球での61日を過ごしても、水星ではまだ夜明け前です。",
+  62: "地球での62日を過ごせば、冥王星では約9.7日目に入ります。",
+  63: "地球での63日は、木星では約151.8日分、土星では約151.2日分に相当し、5ヶ月近くになります。",
+  64: "地球での64日は、天王星では約90日分に相当し、3ヶ月になります。",
+  65: "地球での65日を過ごしても、水星ではまだ夜明け前です。",
+  66: "地球での66日を過ごしても、金星ではまだ1日の3分の1弱です。",
+  67: "地球での67日を過ごせば、冥王星では約10.5日目に入ります。",
+  68: "地球での68日は、木星では約163.7日分、土星では約163.2日分に相当します。",
+  69: "地球での69日を過ごしても、水星ではまだ夜明け前です。",
+  70: "地球での70日は、海王星では約104.3日分に相当し、3ヶ月半以上になります。",
+  71: "地球での71日を過ごせば、冥王星では約11.1日目に入ります。",
+  72: "地球での72日を過ごしても、水星ではまだ夜明け前です。",
+  73: "地球での73日は、木星では約175.7日分、土星では約175.2日分に相当し、6ヶ月近くになります。",
+  74: "地球での74日を過ごしても、金星ではまだ1日の3分の1です。",
+  75: "地球での75日を過ごせば、土星では約180日分に相当し、半年になります。",
+  76: "地球での76日を過ごしても、水星ではまだ夜明け前です。",
+  77: "地球での77日を過ごせば、冥王星では約12日目に入ります。",
+  78: "地球での78日は、天王星では約109.6日分に相当し、3ヶ月半以上になります。",
+  79: "地球での79日を過ごしても、水星ではまだ夜明け前です。",
+  80: "地球での80日は、木星では約193日分。半年以上過ごしても、まだ年度初めかと言えそうです。",
+  81: "地球での81日を過ごしても、金星ではまだ1日の3分の1。金星で「ちょっと昼寝」は3ヶ月コースです。",
+  82: "地球での82日は、海王星では約122日分。四半期決算が一瞬でやってきます。",
+  83: "地球での83日は、冥王星ではまだ13日目。3ヶ月働いても、2週間分の給料しか出ません。",
+  84: "地球での84日は、水星ではまだ夜明け前。始発電車を待っていたら一生が終わりそうです。",
+  85: "地球での85日は、木星では約205日分。『半年以上経ったのに、まだ夏休み？』と言える世界です。",
+  86: "地球での86日は、水星ではまだ1日の半分。夜勤が終わるのは数年後かもしれません。",
+  87: "地球での87日は、木星では約210日分。ボーナスの支給日が目まぐるしくやってきます。",
+  88: "地球での88日は、金星ではまだ1日の3分の1。終わらないめざましテレビに絶望的な気分になれそうです。",
+  89: "地球での89日は、冥王星では14日目。でも地球では3ヶ月働かねばなりません。",
+  90: "地球での90日は、木星では約219日分。半年以上も『次の連休まであとちょっと』と言われ続けます。",
+  91: "地球での91日は、水星ではまだ夜明け前。部活の朝練では誰も生き残れません。",
+  92: "地球での92日は、火星では約84日分。火星に引っ越せば、次の連休までちょっと短縮できます。",
+  93: "地球での93日は、天王星では約127日分。向こうでは盆明けに正月がやってきます。",
+  94: "地球での94日は、金星ではまだ半日。「今日中に片付ける」が3ヶ月単位になる世界です。",
+  95: "地球での95日は、冥王星では約15日目。あっちの給料日は気が遠くなるくらい先です。",
+  96: "地球での96日は、木星では約235日分。年末進行が一年の大半を占める星です。",
+  97: "地球での97日は、水星ではまだ夜明け前。モーニングコーヒーが冷めるどころか枯れます。",
+  98: "地球での98日は、海王星では約151日分。入社から半年経っても、まだ試用期間気分でいられます。",
+  99: "地球での99日は、冥王星では15日目。最初の倦怠期は15日でやってくるかもしれません。",
+  100: "地球での100日は、木星では約246日分。映画は倍速で見るのがスタンダードかもしれません。"
 };
 
 let holidayDate = null;
+let firstHoliday = null;
 let nowTime = null;
 let prev = { days: null, hours: null, minutes: null, seconds: null };
 
-// 日本時間をWorldTimeAPIから取得
+// 日本時間取得
 async function fetchJapanTime() {
   try {
     const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Tokyo");
@@ -93,10 +187,11 @@ async function fetchJapanTime() {
   } catch(e) {
     console.error("日本時間取得エラー:", e);
     nowTime = new Date(new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }));
+    setTimeout(fetchJapanTime, 10000); // 10秒後に再取得
   }
 }
 
-// Googleカレンダーから祝日取得
+// 祝日取得
 async function fetchHolidays() {
   try {
     const timeMin = nowTime.toISOString();
@@ -110,6 +205,7 @@ async function fetchHolidays() {
       .map(ev => new Date(ev.start.date + "T00:00:00+09:00"));
   } catch (err) {
     console.error("祝日取得エラー:", err);
+    setTimeout(fetchHolidays, 60000); // 1分後に再試行
     return [];
   }
 }
@@ -117,12 +213,14 @@ async function fetchHolidays() {
 // 次の3日以上連休を探す
 function findNextLongHoliday(holidays) {
   let date = new Date(nowTime);
+  let earliestHoliday = null;
   for (let i = 0; i < 365; i++) {
     let streak = [];
     let d = new Date(date);
     while (true) {
       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
       const isHoliday = holidays.some(h => h.toDateString() === d.toDateString());
+      if (!earliestHoliday && isHoliday) earliestHoliday = new Date(d);
       if (isWeekend || isHoliday) {
         streak.push(new Date(d));
         d.setDate(d.getDate() + 1);
@@ -130,10 +228,10 @@ function findNextLongHoliday(holidays) {
         break;
       }
     }
-    if (streak.length >= 3) return streak[0];
+    if (streak.length >= 3) return { nextHoliday: streak[0], firstHoliday: earliestHoliday };
     date.setDate(date.getDate() + 1);
   }
-  return null;
+  return { nextHoliday: null, firstHoliday: earliestHoliday };
 }
 
 // 数字アニメーション
@@ -146,19 +244,18 @@ function morphDigit(el, value) {
 
 // タイマー更新
 function updateTimer() {
-  if (!holidayDate || !nowTime) {
-    messageEl.textContent = "次の連休を検索中…";
+  if (!nowTime) return;
+  nowTime = new Date(nowTime.getTime() + 1000);
+  let targetDate = holidayDate || firstHoliday;
+  if (!targetDate) {
+    messageEl.textContent = "次の連休はまだ見つかりません。";
     return;
   }
-
-  nowTime = new Date(nowTime.getTime() + 1000); // 秒ごとに進める
-  let diff = (holidayDate - nowTime) / 1000;
-
+  let diff = (targetDate - nowTime) / 1000;
   if (diff <= 0) {
-    messageEl.textContent = "連休が始まりました！楽しんでください。";
+    messageEl.textContent = holidayDate ? "連休が始まりました！楽しんでください。" : "休日です！";
     return;
   }
-
   const days = Math.floor(diff / 86400);
   const hours = Math.floor((diff % 86400) / 3600);
   const minutes = Math.floor((diff % 3600) / 60);
@@ -171,12 +268,12 @@ function updateTimer() {
 
   prev = { days, hours, minutes, seconds };
 
-  if (days >= 1 && dayMessages[days]) {
+  if (holidayDate && days >= 1 && dayMessages[days]) {
     messageEl.textContent = dayMessages[days];
   } else if (days > 0) {
-    messageEl.textContent = "もうすぐ連休です。準備はできていますか？";
+    messageEl.textContent = `あと${days}日！もうすぐ休日です。`;
   } else {
-    messageEl.textContent = "連休が始まりました！楽しんでください。";
+    messageEl.textContent = holidayDate ? "連休が始まりました！楽しんでください。" : "休日です！";
   }
 }
 
@@ -191,14 +288,11 @@ const messageEl = document.getElementById("message");
 (async function init() {
   await fetchJapanTime();
   const holidays = await fetchHolidays();
-  holidayDate = findNextLongHoliday(holidays);
-  if (!holidayDate) {
-    messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
-  }
+  const { nextHoliday, firstHoliday: first } = findNextLongHoliday(holidays);
+  holidayDate = nextHoliday;
+  firstHoliday = first;
   updateTimer();
   setInterval(updateTimer, 1000);
-
-  // 5分ごとにWorldTimeAPIから再取得して誤差補正
   setInterval(fetchJapanTime, 5 * 60 * 1000);
 })();
 </script>
