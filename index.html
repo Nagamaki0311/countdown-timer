@@ -35,7 +35,6 @@ body {
   overflow: hidden;
 }
 
-/* デジタルノイズモーフィング */
 @keyframes digitalNoise {
   0% { transform: translateY(0) skewX(0deg) scaleX(1); opacity:1; }
   20% { transform: translateY(-2px) skewX(5deg) scaleX(1.05); opacity:0.8; }
@@ -62,7 +61,7 @@ body {
 
 .message {
   margin-top: 24px;
-  font-size: 0.55rem; /* 半分以下に縮小 */
+  font-size: 0.55rem;
   max-width: 600px;
   color: #0ff;
   text-shadow: 0 0 3px #0ff, 0 0 6px #0ff;
@@ -84,10 +83,6 @@ body {
 <script>
 const API_KEY = "AIzaSyCoOrWTtz2ZrjNOQwv_89XjtstKU3e2r-U";
 const CALENDAR_ID = "ja.japanese#holiday@group.v.calendar.google.com";
-
-let holidayDate = null;
-let initialTime = null;
-let startTimestamp = null;
 
 const dayMessages = {
   1: "地球での1日は、火星では約24時間39分、木星では約9時間56分です。地球よりも火星、火星よりも木星の方が連休が早く訪れますよ。",
@@ -199,93 +194,89 @@ const secondsEl = document.getElementById("seconds");
 const messageEl = document.getElementById("message");
 let prev = { days: null, hours: null, minutes: null, seconds: null };
 
-// 数字アニメーション（デジタルノイズモーフィング）
-function animateDigit(el, value) {
+let initialTime = null;
+let startTimestamp = null;
+let holidayDate = null;
+
+// 数字アニメーション
+function animateDigit(el, value){
   el.classList.remove("animate");
   void el.offsetWidth;
   el.textContent = value;
   el.classList.add("animate");
 }
 
-// Googleカレンダー祝日取得
+// 祝日取得
 async function fetchHolidays() {
   try {
     const timeMin = new Date().toISOString();
-    const endOfYear = new Date(new Date().getFullYear() + 1, 11, 31).toISOString();
+    const endOfYear = new Date(new Date().getFullYear()+1, 11, 31).toISOString();
     const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${endOfYear}&singleEvents=true&orderBy=startTime`;
     const res = await fetch(url);
     const data = await res.json();
-    if (!data.items) return [];
+    if(!data.items) return [];
     return data.items.filter(ev => ev.start && ev.start.date).map(ev => new Date(ev.start.date));
-  } catch (err) {
+  } catch(err) {
     console.error("祝日取得エラー:", err);
     return [];
   }
 }
 
 // 3日以上連休判定
-function findNextLongHoliday(holidays) {
+function findNextLongHoliday(holidays){
   const date = new Date();
-  for (let i = 0; i < 365; i++) {
-    let streak = [];
+  for(let i=0;i<365;i++){
+    let streak=[];
     let d = new Date(date);
-    while (true) {
-      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-      const isHoliday = holidays.some(h => h.toDateString() === d.toDateString());
-      if (isWeekend || isHoliday) {
-        streak.push(new Date(d));
-        d.setDate(d.getDate() + 1);
-      } else { break; }
+    while(true){
+      const isWeekend = d.getDay()===0 || d.getDay()===6;
+      const isHoliday = holidays.some(h=>h.toDateString()===d.toDateString());
+      if(isWeekend || isHoliday){ streak.push(new Date(d)); d.setDate(d.getDate()+1); } else { break; }
     }
-    if (streak.length >= 3) return streak[0];
-    date.setDate(date.getDate() + 1);
+    if(streak.length>=3) return streak[0];
+    date.setDate(date.getDate()+1);
   }
   return null;
 }
 
 // タイマー更新
-function updateTimer() {
-  if (!holidayDate || !initialTime || !startTimestamp) {
-    messageEl.textContent = "次の連休を検索中…";
+function updateTimer(){
+  if(!initialTime || !holidayDate || !startTimestamp){
+    messageEl.textContent="次の連休を検索中…";
     return;
   }
   const elapsedMs = Date.now() - startTimestamp;
   const now = new Date(initialTime.getTime() + elapsedMs);
-  let diff = Math.floor((holidayDate - now) / 1000);
-
-  if (diff <= 0) {
-    messageEl.textContent = "連休が始まりました！楽しんでください。";
+  let diff = Math.floor((holidayDate - now)/1000);
+  if(diff<=0){
+    messageEl.textContent="連休が始まりました！楽しんでください。";
     return;
   }
 
-  const days = Math.floor(diff / 86400);
-  const hours = Math.floor((diff % 86400) / 3600);
-  const minutes = Math.floor((diff % 3600) / 60);
-  const seconds = diff % 60;
+  const days = Math.floor(diff/86400);
+  const hours = Math.floor((diff%86400)/3600);
+  const minutes = Math.floor((diff%3600)/60);
+  const seconds = diff%60;
 
-  if (days !== prev.days) animateDigit(daysEl, days);
-  if (hours !== prev.hours) animateDigit(hoursEl, hours);
-  if (minutes !== prev.minutes) animateDigit(minutesEl, minutes);
-  if (seconds !== prev.seconds) animateDigit(secondsEl, seconds);
-  prev = { days, hours, minutes, seconds };
+  if(days!==prev.days) animateDigit(daysEl,days);
+  if(hours!==prev.hours) animateDigit(hoursEl,hours);
+  if(minutes!==prev.minutes) animateDigit(minutesEl,minutes);
+  if(seconds!==prev.seconds) animateDigit(secondsEl,seconds);
+  prev={days,hours,minutes,seconds};
 
-  if (days >= 1 && dayMessages[days]) {
-    messageEl.textContent = dayMessages[days];
-  } else if (days > 0) {
-    messageEl.textContent = "もうすぐ連休です。準備はできていますか？";
-  } else {
-    messageEl.textContent = "連休が始まりました！楽しんでください。";
-  }
+  if(days>=1 && dayMessages[days]) messageEl.textContent=dayMessages[days];
+  else if(days>0) messageEl.textContent="もうすぐ連休です。準備はできていますか？";
+  else messageEl.textContent="連休が始まりました！楽しんでください。";
 }
 
 // 現在時刻取得
-async function fetchAccurateTime() {
-  try {
+async function fetchAccurateTime(){
+  try{
     const res = await fetch("https://worldtimeapi.org/api/ip");
     const data = await res.json();
     initialTime = new Date(data.utc_datetime);
     startTimestamp = Date.now();
-  } catch (err) {
+  }catch(err){
     console.error("WorldTimeAPI取得エラー:", err);
     initialTime = new Date();
     startTimestamp = Date.now();
@@ -293,13 +284,29 @@ async function fetchAccurateTime() {
 }
 
 // 初期化
-(async function init() {
-  await fetchAccurateTime();
-  const holidays = await fetchHolidays();
-  holidayDate = findNextLongHoliday(holidays);
-  if (!holidayDate) messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
+(async function init(){
+  // まず localStorage から読み込み
+  const savedTime = localStorage.getItem("initialTime");
+  const savedHoliday = localStorage.getItem("holidayDate");
+  const savedTimestamp = localStorage.getItem("startTimestamp");
+
+  if(savedTime && savedHoliday && savedTimestamp){
+    initialTime = new Date(savedTime);
+    holidayDate = new Date(savedHoliday);
+    startTimestamp = parseInt(savedTimestamp);
+  } else {
+    await fetchAccurateTime();
+    const holidays = await fetchHolidays();
+    holidayDate = findNextLongHoliday(holidays);
+    // localStorageに保存
+    localStorage.setItem("initialTime", initialTime.toISOString());
+    localStorage.setItem("holidayDate", holidayDate ? holidayDate.toISOString() : "");
+    localStorage.setItem("startTimestamp", startTimestamp.toString());
+  }
+
+  if(!holidayDate) messageEl.textContent="今後1年以内に3日以上の連休は見つかりませんでした。";
   updateTimer();
-  setInterval(updateTimer, 1000);
+  setInterval(updateTimer,1000);
 })();
 </script>
 
