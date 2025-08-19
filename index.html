@@ -13,70 +13,33 @@
     justify-content: center;
     align-items: center;
     height: 100vh;
-    font-family: 'Orbitron', 'Arial', sans-serif;
-    padding: 0 20px;
+    font-family: Arial, sans-serif;
     text-align: center;
   }
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
-
-  .timer {
-    display: flex;
-    gap: 15px;
-    font-size: 4rem;
-    font-weight: 700;
-    text-shadow: 0 0 8px #0ff, 0 0 16px #0ff, 0 0 32px #0ff;
+  .countdown {
+    font-size: 2em;
+    margin: 20px 0;
+    animation: pulse 1s infinite;
   }
-
-  .digit {
-    display: inline-block;
-    min-width: 3rem;
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
   }
-
-  .morph {
-    display: inline-block;
-    animation: noise 0.2s steps(5) forwards;
-  }
-
-  @keyframes noise {
-    0% { opacity: 1; transform: translate(0,0) scale(1); }
-    20% { opacity: 0.3; transform: translate(-2px,1px) scale(1.05); }
-    40% { opacity: 1; transform: translate(1px,-1px) scale(0.95); }
-    60% { opacity: 0.5; transform: translate(-1px,2px) scale(1.02); }
-    80% { opacity: 1; transform: translate(0,0) scale(1); }
-    100% { opacity: 1; transform: translate(0,0) scale(1); }
-  }
-
-  .unit { display: flex; align-items: flex-end; }
-  .unit small {
-    font-size: 1.2rem;
-    margin-left: 4px;
-    margin-bottom: 4px;
-  }
-
   .message {
-    margin-top: 12px;
-    font-size: 0.25rem;
-    max-width: 600px;
-    color: #0ff;
-    text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
-    line-height: 1.4;
+    font-size: 1.5em;
+    margin-top: 10px;
   }
 </style>
 </head>
 <body>
-<div class="timer" id="timer">
-  <div class="unit"><span class="digit" id="days">0</span><small>日</small></div>
-  <div class="unit"><span class="digit" id="hours">0</span><small>時間</small></div>
-  <div class="unit"><span class="digit" id="minutes">0</span><small>分</small></div>
-  <div class="unit"><span class="digit" id="seconds">0</span><small>秒</small></div>
-</div>
-<div class="message" id="message">カウントダウンメッセージがここに表示されます。</div>
+
+<h1>次の連休までのカウントダウン</h1>
+<div class="countdown" id="countdown">--日 --時間 --分 --秒</div>
+<div class="message" id="dayMessage">お楽しみに！</div>
 
 <script>
-const API_KEY = "AIzaSyCoOrWTtz2ZrjNOQwv_89XjtstKU3e2r-U";
-const CALENDAR_ID = "ja.japanese#holiday@group.v.calendar.google.com";
-
-// 元のdayMessagesをそのまま反映
+// 日ごとのメッセージ
 const dayMessages = {
   1: "地球での1日は、火星では約24時間39分、木星では約9時間56分です。地球よりも火星、火星よりも木星の方が連休が早く訪れますよ。",
   2: "地球で2日を過ごしても、金星ではまだ1日の半分にも満たない時間です。ランチを食べ始める頃かもしれません。",
@@ -180,113 +143,47 @@ const dayMessages = {
   100: "地球での100日は、木星では約246日分。映画は倍速で見るのがスタンダードかもしれません。"
 };
 
-let holidayDate = null;
-let prev = { days: null, hours: null, minutes: null, seconds: null };
-
-async function fetchHolidays() {
-  try {
-    const now = new Date(new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }));
-    const timeMin = now.toISOString();
-    const endOfYear = new Date(now.getFullYear() + 1, 11, 31).toISOString();
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${endOfYear}&singleEvents=true&orderBy=startTime`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!data.items) return [];
-    return data.items
-      .filter(ev => ev.start && ev.start.date)
-      .map(ev => new Date(ev.start.date));
-  } catch (err) {
-    console.error("祝日取得エラー:", err);
-    return [];
-  }
+// 日本時間で現在時刻を取得
+function getNowJapan() {
+  return new Date(new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }));
 }
 
-function findNextLongHoliday(holidays) {
-  const now = new Date(new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }));
-  let date = new Date(now);
-  for (let i = 0; i < 365; i++) {
-    let streak = [];
-    let d = new Date(date);
-    while (true) {
-      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-      const isHoliday = holidays.some(h => h.toDateString() === d.toDateString());
-      if (isWeekend || isHoliday) {
-        streak.push(new Date(d));
-        d.setDate(d.getDate() + 1);
-      } else {
-        break;
-      }
-    }
-    if (streak.length >= 3) return streak[0];
-    date.setDate(date.getDate() + 1);
-  }
-  return null;
-}
+// 目標日を設定（例: 2025年9月23日 0:00 JST）
+const holidayDate = new Date("2025-09-23T00:00:00+09:00");
 
-function morphDigit(el, value) {
-  el.classList.remove("morph");
-  void el.offsetWidth;
-  el.textContent = value;
-  el.classList.add("morph");
-}
+// カウントダウン更新関数
+function updateCountdown() {
+  const now = getNowJapan();
+  let diff = Math.floor((holidayDate - now) / 1000); // 秒単位
 
-function updateTimer() {
-  if (!holidayDate) {
-    messageEl.textContent = "次の連休を検索中…";
-    return;
-  }
-
-  const now = new Date(new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }));
-  let diff = (holidayDate - now) / 1000;
-  if (diff <= 0) {
-    (async () => {
-      const holidays = await fetchHolidays();
-      holidayDate = findNextLongHoliday(holidays);
-      if (!holidayDate) {
-        messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
-      }
-    })();
+  if (diff < 0) {
+    document.getElementById("countdown").textContent = "連休到来！";
+    document.getElementById("dayMessage").textContent = "楽しんでください！";
+    clearInterval(timer);
     return;
   }
 
   const days = Math.floor(diff / 86400);
   const hours = Math.floor((diff % 86400) / 3600);
   const minutes = Math.floor((diff % 3600) / 60);
-  const seconds = Math.floor(diff % 60);
+  const seconds = diff % 60;
 
-  if (days !== prev.days) morphDigit(daysEl, days);
-  if (hours !== prev.hours) morphDigit(hoursEl, hours);
-  if (minutes !== prev.minutes) morphDigit(minutesEl, minutes);
-  if (seconds !== prev.seconds) morphDigit(secondsEl, seconds);
+  document.getElementById("countdown").textContent =
+    `${days}日 ${hours}時間 ${minutes}分 ${seconds}秒`;
 
-  prev = { days, hours, minutes, seconds };
-
-  if (days >= 1 && dayMessages[days]) {
-    messageEl.textContent = dayMessages[days];
-  } else if (days > 0) {
-    messageEl.textContent = "もうすぐ連休です。準備はできていますか？";
+  // dayMessagesを反映
+  if(dayMessages[days]) {
+    document.getElementById("dayMessage").textContent = dayMessages[days];
   } else {
-    messageEl.textContent = "連休が始まりました！楽しんでください。";
+    document.getElementById("dayMessage").textContent = "お楽しみに！";
   }
 }
 
-// DOM取得
-const daysEl = document.getElementById("days");
-const hoursEl = document.getElementById("hours");
-const minutesEl = document.getElementById("minutes");
-const secondsEl = document.getElementById("seconds");
-const messageEl = document.getElementById("message");
-
-// 初期化
-(async function init() {
-  const holidays = await fetchHolidays();
-  holidayDate = findNextLongHoliday(holidays);
-  if (!holidayDate) {
-    messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
-  }
-  setInterval(updateTimer, 1000);
-  updateTimer();
-})();
+// 初回実行
+updateCountdown();
+// 1秒ごとに更新
+const timer = setInterval(updateCountdown, 1000);
 </script>
+
 </body>
 </html>
