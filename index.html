@@ -1,87 +1,98 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>次の連休までカウントダウン</title>
-  <style>
-    body {
-      background: #000;
-      color: #0ff;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      font-family: 'Orbitron', 'Arial', sans-serif;
-      padding: 0 20px;
-      text-align: center;
-    }
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>次の連休までカウントダウン</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
-    .timer {
-      display: flex;
-      gap: 15px;
-      font-size: 4rem;
-      font-weight: 700;
-      text-shadow: 0 0 8px #0ff, 0 0 16px #0ff, 0 0 32px #0ff;
-    }
+  body {
+    background: #000;
+    color: #0ff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Orbitron', 'Arial', sans-serif;
+    padding: 0 20px;
+    text-align: center;
+  }
 
-    .digit {
-      display: inline-block;
-      perspective: 1000px;
-      min-width: 3rem;
-    }
+  .timer {
+    display: flex;
+    gap: 15px;
+    font-size: 4rem;
+    font-weight: 700;
+    text-shadow: 0 0 8px #0ff, 0 0 16px #0ff, 0 0 32px #0ff;
+  }
 
-    .flip {
-      display: inline-block;
-      transform-origin: bottom;
-      animation: flip 0.6s ease-in-out forwards;
-    }
+  .digit {
+    display: inline-block;
+    perspective: 1000px;
+    min-width: 3rem;
+  }
 
-    @keyframes flip {
-      0% { transform: rotateX(0deg); }
-      50% { transform: rotateX(-95deg); opacity: 0.3; }
-      100% { transform: rotateX(0deg); opacity: 1; }
-    }
+  /* デジタルノイズ風モーフィングアニメーション */
+  .morph {
+    display: inline-block;
+    animation: morph 0.4s linear;
+  }
 
-    .unit {
-      display: flex;
-      align-items: flex-end;
-    }
+  @keyframes morph {
+    0% { filter: blur(0px) grayscale(0%) brightness(100%); opacity: 0.2; transform: translateX(2px) translateY(-2px); }
+    25% { filter: blur(1px) grayscale(50%) brightness(150%); transform: translateX(-1px) translateY(1px); }
+    50% { filter: blur(0.5px) grayscale(20%) brightness(120%); transform: translateX(1px) translateY(-1px); }
+    75% { filter: blur(1px) grayscale(40%) brightness(130%); transform: translateX(-2px) translateY(2px); }
+    100% { filter: blur(0px) grayscale(0%) brightness(100%); opacity: 1; transform: translateX(0) translateY(0); }
+  }
 
-    .unit small {
-      font-size: 1.2rem;
-      margin-left: 4px;
-      margin-bottom: 4px;
-    }
+  .unit {
+    display: flex;
+    align-items: flex-end;
+  }
 
-    .message {
-      margin-top: 12px;
-      font-size: 0.6rem;
-      max-width: 600px;
-      color: #0ff;
-      text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
-      line-height: 1.4;
-    }
-  </style>
+  .unit small {
+    font-size: 1.2rem;
+    margin-left: 4px;
+    margin-bottom: 4px;
+  }
+
+  .message {
+    margin-top: 12px;
+    font-size: 0.25rem; /* コンパクト化 */
+    max-width: 600px;
+    color: #0ff;
+    text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+    line-height: 1.2;
+  }
+</style>
 </head>
 <body>
-  <div class="timer" id="timer">
-    <div class="unit"><span class="digit" id="days">0</span><small>日</small></div>
-    <div class="unit"><span class="digit" id="hours">0</span><small>時間</small></div>
-    <div class="unit"><span class="digit" id="minutes">0</span><small>分</small></div>
-    <div class="unit"><span class="digit" id="seconds">0</span><small>秒</small></div>
-  </div>
-  <div class="message" id="message">カウントダウンメッセージがここに表示されます。</div>
+<div class="timer" id="timer">
+  <div class="unit"><span class="digit" id="days">0</span><small>日</small></div>
+  <div class="unit"><span class="digit" id="hours">0</span><small>時間</small></div>
+  <div class="unit"><span class="digit" id="minutes">0</span><small>分</small></div>
+  <div class="unit"><span class="digit" id="seconds">0</span><small>秒</small></div>
+</div>
+<div class="message" id="message">カウントダウンメッセージがここに表示されます。</div>
 
-  <script>
-    const API_KEY = "AIzaSyCoOrWTtz2ZrjNOQwv_89XjtstKU3e2r-U";
-    const CALENDAR_ID = "ja.japanese#holiday@group.v.calendar.google.com";
+<script>
+  const API_KEY = "AIzaSyCoOrWTtz2ZrjNOQwv_89XjtstKU3e2r-U";
+  const CALENDAR_ID = "ja.japanese#holiday@group.v.calendar.google.com";
+  let holidayDate = null;
 
-    let holidayDate = null;
+  const daysEl = document.getElementById("days");
+  const hoursEl = document.getElementById("hours");
+  const minutesEl = document.getElementById("minutes");
+  const secondsEl = document.getElementById("seconds");
+  const messageEl = document.getElementById("message");
+  let prev = { days: null, hours: null, minutes: null, seconds: null };
 
-    const dayMessages = {
+  // 元のdayMessages
+  const dayMessages = {
+  0: "連休が始まりました！",
   1: "地球での1日は、火星では約24時間39分、木星では約9時間56分です。地球よりも火星、火星よりも木星の方が連休が早く訪れますよ。",
   2: "地球で2日を過ごしても、金星ではまだ1日の半分にも満たない時間です。ランチを食べ始める頃かもしれません。",
   3: "地球で3日を過ごすと、巨大ガス惑星の木星では約7.5日分、土星では約7.6日分に相当します。向こうではもう週明けみたいです。",
@@ -182,114 +193,97 @@
   98: "地球での98日は、海王星では約151日分。入社から半年経っても、まだ試用期間気分でいられます。",
   99: "地球での99日は、冥王星では15日目。最初の倦怠期は15日でやってくるかもしれません。",
   100: "地球での100日は、木星では約246日分。映画は倍速で見るのがスタンダードかもしれません。"
-    };
+  };
 
-    const daysEl = document.getElementById("days");
-    const hoursEl = document.getElementById("hours");
-    const minutesEl = document.getElementById("minutes");
-    const secondsEl = document.getElementById("seconds");
-    const messageEl = document.getElementById("message");
-    let prev = { days: null, hours: null, minutes: null, seconds: null };
-
-    async function fetchHolidays() {
-      try {
-        const now = new Date();
-        const timeMin = now.toISOString();
-        const endOfYear = new Date(now.getFullYear() + 1, 11, 31).toISOString();
-        const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${endOfYear}&singleEvents=true&orderBy=startTime`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (!data.items) return [];
-        return data.items
-          .filter(ev => ev.start && ev.start.date)
-          .map(ev => new Date(ev.start.date));
-      } catch (err) {
-        console.error("祝日取得エラー:", err);
-        return [];
-      }
-    }
-
-    function findNextLongHoliday(holidays) {
+  async function fetchHolidays() {
+    try {
       const now = new Date();
-      let date = new Date(now);
-      for (let i = 0; i < 365; i++) {
-        let streak = [];
-        let d = new Date(date);
-        while (true) {
-          const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-          const isHoliday = holidays.some(h => h.toDateString() === d.toDateString());
-          if (isWeekend || isHoliday) {
-            streak.push(new Date(d));
-            d.setDate(d.getDate() + 1);
-          } else {
-            break;
-          }
-        }
-        if (streak.length >= 3) {
-          return streak[0];
-        }
-        date.setDate(date.getDate() + 1);
+      const timeMin = now.toISOString();
+      const endOfYear = new Date(now.getFullYear() + 1, 11, 31).toISOString();
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${timeMin}&timeMax=${endOfYear}&singleEvents=true&orderBy=startTime`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.items) return [];
+      return data.items.filter(ev => ev.start && ev.start.date)
+                       .map(ev => new Date(ev.start.date));
+    } catch (err) {
+      console.error("祝日取得エラー:", err);
+      return [];
+    }
+  }
+
+  function findNextLongHoliday(holidays) {
+    const now = new Date();
+    let date = new Date(now);
+    for (let i = 0; i < 365; i++) {
+      let streak = [];
+      let d = new Date(date);
+      while (true) {
+        const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+        const isHoliday = holidays.some(h => h.toDateString() === d.toDateString());
+        if (isWeekend || isHoliday) {
+          streak.push(new Date(d));
+          d.setDate(d.getDate() + 1);
+        } else break;
       }
-      return null;
+      if (streak.length >= 3) return streak[0];
+      date.setDate(date.getDate() + 1);
+    }
+    return null;
+  }
+
+  function morphDigit(el, value) {
+    el.classList.remove("morph");
+    void el.offsetWidth;
+    el.textContent = value;
+    el.classList.add("morph");
+  }
+
+  function updateTimer() {
+    if (!holidayDate) {
+      messageEl.textContent = "次の連休を検索中…";
+      return;
     }
 
-    function flipDigit(el, value) {
-      el.classList.remove("flip");
-      void el.offsetWidth;
-      el.textContent = value;
-      el.classList.add("flip");
+    const now = new Date();
+    let diff = Math.floor((holidayDate - now) / 1000);
+    if (diff <= 0) {
+      (async () => {
+        const holidays = await fetchHolidays();
+        holidayDate = findNextLongHoliday(holidays);
+        if (!holidayDate) messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
+      })();
+      return;
     }
 
-    function updateTimer() {
-      if (!holidayDate) {
-        messageEl.textContent = "次の連休を検索中…";
-        return;
-      }
+    const days = Math.floor(diff / 86400);
+    const hours = Math.floor((diff % 86400) / 3600);
+    const minutes = Math.floor((diff % 3600) / 60);
+    const seconds = diff % 60;
 
-      const now = new Date();
-      let diff = Math.floor((holidayDate - now) / 1000);
-      if (diff <= 0) {
-        (async () => {
-          const holidays = await fetchHolidays();
-          holidayDate = findNextLongHoliday(holidays);
-          if (!holidayDate) {
-            messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
-          }
-        })();
-        return;
-      }
+    if (days !== prev.days) morphDigit(daysEl, days);
+    if (hours !== prev.hours) morphDigit(hoursEl, hours);
+    if (minutes !== prev.minutes) morphDigit(minutesEl, minutes);
+    if (seconds !== prev.seconds) morphDigit(secondsEl, seconds);
+    prev = { days, hours, minutes, seconds };
 
-      const days = Math.floor(diff / 86400);
-      const hours = Math.floor((diff % 86400) / 3600);
-      const minutes = Math.floor((diff % 3600) / 60);
-      const seconds = diff % 60;
-
-      if (days !== prev.days) flipDigit(daysEl, days);
-      if (hours !== prev.hours) flipDigit(hoursEl, hours);
-      if (minutes !== prev.minutes) flipDigit(minutesEl, minutes);
-      if (seconds !== prev.seconds) flipDigit(secondsEl, seconds);
-      prev = { days, hours, minutes, seconds };
-
-      if (days >= 1 && dayMessages[days]) {
-        messageEl.textContent = dayMessages[days];
-      } else if (days > 0) {
-        messageEl.textContent = "もうすぐ連休です。準備はできていますか？";
-      } else {
-        messageEl.textContent = "連休が始まりました！楽しんでください。";
-      }
+    // dayMessagesに基づく表示
+    if (dayMessages[days]) {
+      messageEl.textContent = dayMessages[days];
+    } else if (days > 5) {
+      messageEl.textContent = `次の連休まであと${days}日です。`;
+    } else {
+      messageEl.textContent = "連休が近づいています！";
     }
+  }
 
-    (async function init() {
-      const holidays = await fetchHolidays();
-      holidayDate = findNextLongHoliday(holidays);
-      if (!holidayDate) {
-        messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
-      }
-      setInterval(updateTimer, 1000);
-      updateTimer();
-    })();
-
-  </script>
+  (async function init() {
+    const holidays = await fetchHolidays();
+    holidayDate = findNextLongHoliday(holidays);
+    if (!holidayDate) messageEl.textContent = "今後1年以内に3日以上の連休は見つかりませんでした。";
+    setInterval(updateTimer, 1000);
+    updateTimer();
+  })();
+</script>
 </body>
 </html>
-
