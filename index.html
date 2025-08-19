@@ -61,7 +61,6 @@ body {
   line-height: 1.2;
 }
 
-/* 連休表示用 */
 .celebration {
   display: none;
   font-family: 'Orbitron', 'Arial', sans-serif;
@@ -80,7 +79,6 @@ body {
   100% { text-shadow: 0 0 20px #fff, 0 0 40px gold, 0 0 80px gold, 0 0 160px gold; }
 }
 
-/* 粒子（紙吹雪＋光スパーク） */
 .particle {
   position: absolute;
   pointer-events: none;
@@ -92,39 +90,30 @@ body {
 }
 
 @keyframes floatFall {
-  0% {
-    transform: translate3d(var(--x), 0, 0) rotate(0deg) scale(var(--scale));
-    opacity:1;
-  }
-  50% {
-    transform: translate3d(calc(var(--x) + var(--drift)), 50vh, 180deg) scale(var(--scale));
-    opacity:0.8;
-  }
-  100% {
-    transform: translate3d(calc(var(--x) + var(--drift)*1.5), 100vh, 360deg) scale(var(--scale));
-    opacity:0;
-  }
+  0% { transform: translate3d(var(--x), 0, 0) rotate(0deg) scale(var(--scale)); opacity:1; }
+  50% { transform: translate3d(calc(var(--x) + var(--drift)), 50vh, 180deg) scale(var(--scale)); opacity:0.8; }
+  100% { transform: translate3d(calc(var(--x) + var(--drift)*1.5), 100vh, 360deg) scale(var(--scale)); opacity:0; }
 }
 
-/* デジタルノイズ演出 */
+/* デジタルノイズ */
 #screenNoise {
   pointer-events: none;
   position: fixed;
   top:0; left:0;
   width:100vw; height:100vh;
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="white"/><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(#noiseFilter)"/></svg>') repeat;
+  background: #fff;
   opacity:0;
-  z-index: 9999;
+  z-index:9999;
   mix-blend-mode: screen;
-  transform: scale(1) skew(0deg);
+  transform: scale(1);
 }
 
 @keyframes noiseFlash {
-  0% { opacity:0; transform: scale(1) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
-  20% { opacity:0.3; transform: scale(1.02) skew(2deg, -1deg); filter: hue-rotate(20deg) contrast(1.2); }
-  50% { opacity:0.4; transform: scale(0.98) skew(-2deg, 1deg); filter: hue-rotate(-20deg) contrast(1.1); }
-  70% { opacity:0.2; transform: scale(1.01) skew(1deg, -1deg); filter: hue-rotate(10deg) contrast(1.3); }
-  100% { opacity:0; transform: scale(1) skew(0deg); filter: hue-rotate(0deg) contrast(1); }
+  0% { opacity:0; transform: scale(1) skew(0deg,0deg); filter: hue-rotate(0deg) contrast(1); }
+  20% { opacity:0.5; transform: scale(1.05) skew(4deg,-3deg); filter: hue-rotate(50deg) contrast(1.5); }
+  50% { opacity:0.7; transform: scale(0.97) skew(-4deg,3deg); filter: hue-rotate(-50deg) contrast(2); }
+  70% { opacity:0.4; transform: scale(1.02) skew(2deg,-2deg); filter: hue-rotate(30deg) contrast(1.8); }
+  100% { opacity:0; transform: scale(1) skew(0deg,0deg); filter: hue-rotate(0deg) contrast(1); }
 }
 </style>
 </head>
@@ -280,8 +269,7 @@ function findNextLongHoliday(holidays){
       const isWeekend = d.getDay()===0 || d.getDay()===6;
       const isHoliday = holidays.some(h=>h.toDateString()===d.toDateString());
       if(isWeekend || isHoliday){ streak.push(new Date(d)); d.setDate(d.getDate()+1); }
-      else { break; }
-    }
+      else { break;}
     if(streak.length>=3) return streak[0];
     date.setDate(date.getDate()+1);
   }
@@ -311,18 +299,21 @@ function createParticles() {
 // デジタルノイズ発生
 function triggerScreenNoise(){
   const noiseEl = document.getElementById('screenNoise');
-  noiseEl.style.animation = 'noiseFlash 0.15s ease-in-out';
+  const duration = 200 + Math.random()*2300; // 0.2～2.5秒
+  noiseEl.style.animation = `noiseFlash ${duration}ms ease-in-out`;
   noiseEl.addEventListener('animationend', ()=>{
     noiseEl.style.animation = '';
   }, {once:true});
 }
 
-// ランダム間隔でノイズ発生
-setInterval(()=>{
-  if(Math.random()<0.35){ // 35%確率
+// ランダム間隔でノイズ発生（平均30秒に1回）
+function scheduleNoise(){
+  const interval = Math.random()*30000 + 1000; // 1～31秒のランダム
+  setTimeout(()=>{
     triggerScreenNoise();
-  }
-}, 400);
+    scheduleNoise();
+  }, interval);
+}
 
 // タイマー更新
 function updateTimer(holidayDate){
@@ -362,6 +353,9 @@ function updateTimer(holidayDate){
   }
   updateTimer(holidayDate);
   setInterval(()=>updateTimer(holidayDate), 1000);
+
+  // ノイズスケジュール開始
+  scheduleNoise();
 })();
 </script>
 </body>
